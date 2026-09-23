@@ -1,5 +1,10 @@
 // management-nilai.js
+// Manajemen nilai - Auto koreksi PG, PGK, BS
 
+// ==================== KONFIGURASI ====================
+const POIN_PER_SOAL = 5; // Nilai maksimal per soal untuk semua tipe
+
+// ==================== FUNGSI UTAMA: LOAD NILAI ====================
 async function loadNilai() {
     const kelas = document.getElementById('filterKelasNilai')?.value;
     const mapel = document.getElementById('filterMapelNilai')?.value;
@@ -8,34 +13,35 @@ async function loadNilai() {
     
     if (!tbody) return;
     
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Loading...</td></tr>';
     
     try {
         if (typeof answersRef === 'undefined') {
             console.error('answersRef tidak terdefinisi');
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: red;">Error: answersRef tidak terdefinisi</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: red;">Error: answersRef tidak terdefinisi</td></tr>';
             return;
         }
         
         let query = answersRef;
-        
         if (kelas) query = query.where('kelas', '==', kelas);
         if (mapel) query = query.where('mataPelajaran', '==', mapel);
         
         const snapshot = await query.orderBy('waktu', 'desc').get();
         
         if (snapshot.empty) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center">Tidak ada data</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center">Tidak ada data</td></tr>';
             return;
         }
         
+        // Gabungkan berdasarkan siswaId + mapel (ambil yang terbaru)
         const nilaiMap = new Map();
-        
         snapshot.forEach(doc => {
             const nilai = doc.data();
             const key = nilai.siswaId + '_' + nilai.mataPelajaran;
+            const waktuBaru = nilai.waktu?.toDate?.() || new Date(0);
+            const waktuLama = nilaiMap.get(key)?.waktu?.toDate?.() || new Date(0);
             
-            if (!nilaiMap.has(key) || (nilai.waktu && nilai.waktu.toDate && nilai.waktu.toDate() > nilaiMap.get(key).waktu.toDate())) {
+            if (!nilaiMap.has(key) || waktuBaru > waktuLama) {
                 nilaiMap.set(key, { id: doc.id, ...nilai });
             }
         });
@@ -46,7 +52,7 @@ async function loadNilai() {
         });
         
         if (filteredData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center">Tidak ada data sesuai filter</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center">Tidak ada data sesuai filter</td></tr>';
             return;
         }
         
@@ -54,177 +60,228 @@ async function loadNilai() {
         let no = 1;
         
         for (const nilai of filteredData) {
-            // Ambil nilai dari berbagai sumber
-            let nilaiPG = 0;
-            let nilaiIsian = 0;
-            let nilaiUraian = 0;
-            let totalPG = nilai.totalPG || 0;
-            let totalIsian = 0;
-            let totalUraian = 0;
+            // ========== AMBIL NILAI DARI FIRESTORE ==========
+            const nilaiPG = nilai.nilaiPG || 0;
+            const nilaiPGK = nilai.nilaiPGK || 0;
+            const nilaiBS = nilai.nilaiBS || 0;
             
-            // Cek dari koreksiDetail terlebih dahulu (sumber paling akurat)
-            if (nilai.koreksiDetail) {
-                // Hitung nilai isian dari koreksiDetail
-                if (nilai.koreksiDetail.isian) {
-                    for (const [qId, detail] of Object.entries(nilai.koreksiDetail.isian)) {
-                        nilaiIsian += detail.nilai || 0;
-                        totalIsian += detail.nilaiMaksimal || 5;
-                    }
-                }
-                
-                // Hitung nilai uraian dari koreksiDetail
-                if (nilai.koreksiDetail.uraian) {
-                    for (const [qId, detail] of Object.entries(nilai.koreksiDetail.uraian)) {
-                        nilaiUraian += detail.nilai || 0;
-                        totalUraian += detail.nilaiMaksimal || 10;
-                    }
-                }
-            }
+            const totalPG = nilai.totalPG || 0;
+            const totalPGK = nilai.totalPGK || 0;
+            const totalBS = nilai.totalBS || 0;
             
-            // Jika tidak ada koreksiDetail, gunakan field langsung
-            if (nilaiIsian === 0 && nilai.nilaiIsian !== undefined) {
-                nilaiIsian = nilai.nilaiIsian || 0;
-            }
-            if (nilaiUraian === 0 && nilai.nilaiUraian !== undefined) {
-                nilaiUraian = nilai.nilaiUraian || 0;
-            }
+            const nilaiAkhir = nilai.nilaiAkhir || 0;
             
-            // Jika masih 0, coba hitung dari jawabanIsian dan jawabanUraian
-            if (nilaiIsian === 0 && nilai.jawabanIsian) {
-                for (const [qId, data] of Object.entries(nilai.jawabanIsian)) {
-                    if (data.nilai !== undefined) {
-                        nilaiIsian += data.nilai || 0;
-                    }
-                    totalIsian += data.nilaiMaksimal || 5;
-                }
-            }
-            
-            if (nilaiUraian === 0 && nilai.jawabanUraian) {
-                for (const [qId, data] of Object.entries(nilai.jawabanUraian)) {
-                    if (data.nilai !== undefined) {
-                        nilaiUraian += data.nilai || 0;
-                    }
-                    totalUraian += data.nilaiMaksimal || 10;
-                }
-            }
-            
-            // Ambil nilai PG
-            nilaiPG = nilai.nilaiPG || 0;
-            
-            // Jika total masih 0, gunakan dari examData atau default
-            if (totalIsian === 0 && nilai.jawabanIsian) {
-                totalIsian = Object.keys(nilai.jawabanIsian).length * 5;
-            }
-            if (totalUraian === 0 && nilai.jawabanUraian) {
-                totalUraian = Object.keys(nilai.jawabanUraian).length * 10;
-            }
-            
-            // ========== PERBAIKAN RUMUS PERHITUNGAN NILAI ==========
-            const jumlahNilaiDiperoleh = nilaiPG + nilaiIsian + nilaiUraian;
-            const jumlahNilaiMaksimal = totalPG + totalIsian + totalUraian;
-            
-            let nilaiAkhir = 0;
-            if (nilai.statusKoreksi === 'pending') {
-                nilaiAkhir = 0;
-            } else {
-                if (jumlahNilaiMaksimal > 0) {
-                    nilaiAkhir = (jumlahNilaiDiperoleh / jumlahNilaiMaksimal) * 100;
-                    nilaiAkhir = Math.round(nilaiAkhir);
-                }
-            }
-            
-            let statusText = '';
-            let statusClass = '';
-            
-            if (nilai.statusKoreksi === 'pending') {
-                statusText = 'Menunggu Koreksi';
-                statusClass = 'status-pending';
-            } else {
-                statusText = 'Selesai';
-                statusClass = 'status-selesai';
-            }
+            const statusText = nilai.statusKoreksi === 'pending' ? 'Menunggu' : 'Selesai';
+            const statusClass = nilai.statusKoreksi === 'pending' ? 'status-pending' : 'status-selesai';
             
             const row = tbody.insertRow();
             row.insertCell(0).textContent = no++;
             row.insertCell(1).textContent = nilai.siswaNama || '-';
             row.insertCell(2).textContent = nilai.kelas || '-';
             row.insertCell(3).textContent = nilai.mataPelajaran || '-';
-            
-            // Tampilkan hanya angka (tanpa /total)
-            row.insertCell(4).textContent = nilaiPG;
-            row.insertCell(5).textContent = nilaiIsian;
-            row.insertCell(6).textContent = nilaiUraian;
-            row.insertCell(7).innerHTML = '<strong>' + nilaiAkhir + '</strong>';
-            row.insertCell(8).innerHTML = '<span class="exam-status ' + statusClass + '">' + statusText + '</span>';
-            
-            // ========== KOLOM AKSI (Batalkan Koreksi) ==========
-            const actionCell = row.insertCell(9);
-            
-            // Tombol Batalkan Koreksi untuk data yang sudah selesai dikoreksi
-            if (nilai.statusKoreksi === 'selesai') {
-                actionCell.innerHTML = `
-                    <button class="btn-batal-koreksi" 
-                            onclick="batalKoreksi('${nilai.id}', '${escapeHtml(nilai.siswaNama)}', '${escapeHtml(nilai.mataPelajaran)}')" 
-                            title="Batalkan Koreksi">
-                        🔄 Batalkan Koreksi
-                    </button>
-                `;
-            } else {
-                // Untuk data yang masih pending, tampilkan teks saja
-                actionCell.innerHTML = '<span style="color: #999; font-size: 12px;">Menunggu Koreksi</span>';
-            }
+            row.insertCell(4).textContent = totalPG > 0 ? `${nilaiPG} / ${totalPG}` : '-';
+            row.insertCell(5).textContent = totalPGK > 0 ? `${nilaiPGK} / ${totalPGK}` : '-';
+            row.insertCell(6).textContent = totalBS > 0 ? `${nilaiBS} / ${totalBS}` : '-';
+            row.insertCell(7).innerHTML = `<strong>${nilaiAkhir}</strong>`;
+            row.insertCell(8).innerHTML = `<span class="exam-status ${statusClass}">${statusText}</span>`;
         }
         
     } catch (error) {
         console.error('Error loading nilai:', error);
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: red;">Error: ' + error.message + '</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
     }
 }
 
-// ========== FUNGSI BATALKAN KOREKSI (TIDAK MENGHAPUS JAWABAN) ==========
-async function batalKoreksi(docId, siswaNama, mataPelajaran) {
-    // Konfirmasi pembatalan
-    const confirmed = confirm(`⚠️ BATALKAN KOREKSI\n\nApakah Anda yakin ingin membatalkan koreksi untuk:\n\n📌 Siswa: ${siswaNama}\n📖 Mapel: ${mataPelajaran}\n\n⚠️ PERINGATAN: Hanya nilai koreksi yang akan dihapus, JAWABAN SISWA TETAP ADA.\n\nData akan kembali ke status "Menunggu Koreksi" dan muncul di halaman Koreksi Essay.`);
+// ==================== FUNGSI AUTO KOREKSI (DIPANGGIL SAAT SUBMIT UJIAN) ====================
+/**
+ * Fungsi untuk mengoreksi jawaban siswa secara otomatis
+ * @param {Object} jawabanSiswa - { pg: {qId: 'A'}, pgk: {qId: 'A,C'}, bs: {qId: 'B,S,B'} }
+ * @param {Object} kunciJawaban - { pg: {qId: 'A'}, pgk: {qId: 'A,C'}, bs: {qId: 'B,S,B'} }
+ * @returns {Object} - { nilaiPG, nilaiPGK, nilaiBS, totalPG, totalPGK, totalBS, nilaiAkhir, detail }
+ */
+function autoKoreksi(jawabanSiswa, kunciJawaban) {
+    const detail = { pg: {}, pgk: {}, bs: {} };
     
-    if (!confirmed) return;
+    // ========== KOREKSI PG ==========
+    let nilaiPG = 0;
+    let totalPG = 0;
     
-    try {
-        if (typeof answersRef === 'undefined') {
-            throw new Error('answersRef tidak terdefinisi');
-        }
+    for (const [qId, jawaban] of Object.entries(jawabanSiswa.pg || {})) {
+        totalPG += POIN_PER_SOAL;
+        const kunci = kunciJawaban.pg?.[qId] || '';
+        const benar = (String(jawaban).trim().toUpperCase() === String(kunci).trim().toUpperCase());
+        const nilai = benar ? POIN_PER_SOAL : 0;
+        nilaiPG += nilai;
         
-        // HANYA HAPUS DATA KOREKSI, JANGAN HAPUS JAWABAN SISWA!
-        await answersRef.doc(docId).update({
-            statusKoreksi: 'pending',
-            dikoreksiOleh: null,
-            waktuKoreksi: null,
-            koreksiDetail: firebase.firestore.FieldValue.delete(), // Hanya hapus koreksiDetail
-            nilaiIsian: 0,
-            nilaiUraian: 0,
-            nilaiAkhir: 0
-            // ⚠️ TIDAK menghapus jawabanIsian dan jawabanUraian!
-        });
-        
-        console.log(`✅ Berhasil batalkan koreksi: ${docId}`);
-        alert(`✅ Berhasil membatalkan koreksi ${siswaNama} - ${mataPelajaran}\n\nJawaban siswa tetap tersimpan.`);
-        
-        // Reload tabel nilai
-        await loadNilai();
-        
-        // Refresh halaman koreksi jika sedang aktif
-        const koreksiTab = document.getElementById('tab-koreksi');
-        if (koreksiTab && koreksiTab.classList.contains('active')) {
-            if (typeof loadSiswaForKoreksi === 'function') await loadSiswaForKoreksi();
-            if (typeof loadJawabanKoreksi === 'function') await loadJawabanKoreksi();
-        }
-        
-    } catch (error) {
-        console.error('Error membatalkan koreksi:', error);
-        alert('❌ Gagal membatalkan koreksi: ' + error.message);
+        detail.pg[qId] = {
+            jawaban: jawaban,
+            kunci: kunci,
+            benar: benar,
+            nilai: nilai,
+            nilaiMaksimal: POIN_PER_SOAL
+        };
     }
+    
+    // ========== KOREKSI PGK ==========
+    let nilaiPGK = 0;
+    let totalPGK = 0;
+    
+    for (const [qId, jawaban] of Object.entries(jawabanSiswa.pgk || {})) {
+        totalPGK += POIN_PER_SOAL;
+        const kunci = kunciJawaban.pgk?.[qId] || '';
+        const nilai = hitungNilaiPGK(jawaban, kunci);
+        nilaiPGK += nilai;
+        
+        detail.pgk[qId] = {
+            jawaban: jawaban,
+            kunci: kunci,
+            nilai: nilai,
+            nilaiMaksimal: POIN_PER_SOAL
+        };
+    }
+    
+    // ========== KOREKSI BS ==========
+    let nilaiBS = 0;
+    let totalBS = 0;
+    
+    for (const [qId, jawaban] of Object.entries(jawabanSiswa.bs || {})) {
+        totalBS += POIN_PER_SOAL;
+        const kunci = kunciJawaban.bs?.[qId] || '';
+        const nilai = hitungNilaiBS(jawaban, kunci);
+        nilaiBS += nilai;
+        
+        detail.bs[qId] = {
+            jawaban: jawaban,
+            kunci: kunci,
+            nilai: nilai,
+            nilaiMaksimal: POIN_PER_SOAL
+        };
+    }
+    
+    // ========== HITUNG NILAI AKHIR ==========
+    const nilaiDiperoleh = nilaiPG + nilaiPGK + nilaiBS;
+    const nilaiMaksimal = totalPG + totalPGK + totalBS;
+    const nilaiAkhir = nilaiMaksimal > 0 
+        ? Math.round((nilaiDiperoleh / nilaiMaksimal) * 100)
+        : 0;
+    
+    return {
+        nilaiPG,
+        nilaiPGK,
+        nilaiBS,
+        totalPG,
+        totalPGK,
+        totalBS,
+        nilaiAkhir,
+        detail,
+        jumlahSoal: {
+            pg: Object.keys(jawabanSiswa.pg || {}).length,
+            pgk: Object.keys(jawabanSiswa.pgk || {}).length,
+            bs: Object.keys(jawabanSiswa.bs || {}).length
+        }
+    };
 }
 
-// ========== FUNGSI HELPER ==========
+// ==================== HITUNG NILAI PGK ====================
+/**
+ * Aturan PGK:
+ * - Persis sama (jumlah & isi) → 5
+ * - Kurang/lebih tanpa salah → 2.5
+ * - Ada jawaban salah → 1
+ * - Benar 0 → 0
+ */
+function hitungNilaiPGK(jawabanSiswa, kunci) {
+    if (!jawabanSiswa || !kunci) return 0;
+    
+    // Parse jawaban jadi array huruf, buang spasi
+    const parseArr = (str) => {
+        return String(str)
+            .toUpperCase()
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+            .sort();
+    };
+    
+    const arrJawaban = parseArr(jawabanSiswa);
+    const arrKunci = parseArr(kunci);
+    
+    if (arrKunci.length === 0) return 0;
+    if (arrJawaban.length === 0) return 0;
+    
+    // Hitung B (benar, ada di kunci) dan S (salah, tidak ada di kunci)
+    let B = 0;
+    let S = 0;
+    
+    for (const j of arrJawaban) {
+        if (arrKunci.includes(j)) {
+            B++;
+        } else {
+            S++;
+        }
+    }
+    
+    const K = arrKunci.length;
+    
+    // Persis sama
+    if (B === K && S === 0) {
+        return POIN_PER_SOAL; // 5
+    }
+    
+    // Ada jawaban salah
+    if (S >= 1 && B >= 1) {
+        return 1;
+    }
+    
+    // Kurang (tidak salah, tapi tidak lengkap)
+    if (B >= 1 && S === 0 && B < K) {
+        return POIN_PER_SOAL / 2; // 2.5
+    }
+    
+    // Benar 0
+    if (B === 0) {
+        return 0;
+    }
+    
+    return 0;
+}
+
+// ==================== HITUNG NILAI BS ====================
+/**
+ * Aturan BS: proporsional
+ * nilai = (jumlah benar / jumlah pernyataan) × 5
+ */
+function hitungNilaiBS(jawabanSiswa, kunci) {
+    if (!jawabanSiswa || !kunci) return 0;
+    
+    const parseArr = (str) => {
+        return String(str)
+            .toUpperCase()
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+    };
+    
+    const arrJawaban = parseArr(jawabanSiswa);
+    const arrKunci = parseArr(kunci);
+    
+    if (arrKunci.length === 0) return 0;
+    
+    // Hitung jumlah benar
+    let benar = 0;
+    const total = arrKunci.length;
+    
+    for (let i = 0; i < total; i++) {
+        if (arrJawaban[i] === arrKunci[i]) {
+            benar++;
+        }
+    }
+    
+    // Proporsional
+    return (benar / total) * POIN_PER_SOAL;
+}
+
+// ==================== FUNGSI HELPER ====================
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
