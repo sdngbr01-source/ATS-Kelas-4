@@ -304,10 +304,11 @@ function renderBS(question) {
         const jawabanItem = jawabanSiswa[idx] || '';
         const textPernyataan = item.text || item.pernyataan || '';
         
+        // ✅ Render HTML langsung (TANPA escapeHtml) supaya tag <sup>, <sub>, dll dirender
         html += `
             <div class="tf-item">
                 <div class="tf-number">${idx + 1}.</div>
-                <div class="tf-text">${escapeHtml(textPernyataan)}</div>
+                <div class="tf-text">${textPernyataan}</div>
                 <div class="tf-options">
                     <button class="tf-btn" 
                             onclick="selectTrueFalse('${question.id}', ${idx}, 'B')"
