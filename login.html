@@ -420,8 +420,8 @@
             setLoading(true);
             
             try {
-                // Cek jam akses — NISN 123456 bebas (untuk telaah soal)
-if (nisn !== '123456' && !isSchoolHourWIB()) {
+                // Cek jam akses
+if (!isSchoolHourWIB()) {
     showAlert('Akses hanya diperbolehkan pada jam sekolah (07.00 - 12.00 WIB)!');
     setLoading(false);
     return;
