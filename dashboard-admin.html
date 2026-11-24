@@ -738,59 +738,61 @@
             </div>
         </div>
 
-        <!-- TAB SETTING SOAL & NILAI -->
-        <div id="tab-setting" class="tab-content">
-            <h2>Setting Ujian</h2>
-            <div class="card">
-                <div class="card" style="margin-top: 20px;">
-                    <h3>📋 Daftar Ujian Aktif</h3>
-                    <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead><tr><th>No</th><th>Kelas</th><th>Mata Pelajaran</th><th>Komposisi Soal</th><th>Nilai Maks</th><th>Durasi</th><th>Status</th><th>Aksi</th></tr></thead>
-                            <tbody id="examListBody"><tr><td colspan="8" style="text-align: center;">Loading...</td></tr></tbody>
-                        </table>
-                    </div>
-                </div>
-                <h3>Setting Ujian Baru</h3>
-                <form id="examSettingForm">
-                    <div class="form-group">
-                        <label>Kelas</label>
-                        <select id="settingKelas" required><option value="">Pilih Kelas</option></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Mata Pelajaran</label>
-                        <select id="settingMapel" required>
-                            <option value="">Pilih Mapel</option>
-                            <option value="Pendidikan Pancasila">Pendidikan Pancasila</option>
-                            <option value="Pendidikan Agama Islam">Pendidikan Agama Islam</option>
-                            <option value="Matematika">Matematika</option>
-                            <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-                            <option value="IPAS">IPAS</option>
-                            <option value="IPS">IPS</option>
-                            <option value="PPKn">PPKn</option>
-                            <option value="PJOK">PJOK</option>
-                            <option value="SBdP">SBdP</option>
-                            <option value="Bahasa inggris">Bahasa Inggris</option>
-                            <option value="Bahasa Jawa">Bahasa Jawa</option>
-                            <option value="Baca Tulis Alquran">Baca Tulis Alquran</option>
-<option value="Uji Coba">Uji Coba</option>
-                        </select>
-                    </div>
-                    <h4>Jumlah Soal</h4>
-<div class="form-group"><label>Pilihan Ganda</label><input type="number" id="jmlPG" min="0" value="10"></div>
-<div class="form-group"><label>PG Kompleks (jawaban &gt; 1)</label><input type="number" id="jmlPGK" min="0" value="0"></div>
-<div class="form-group"><label>Benar/Salah</label><input type="number" id="jmlBS" min="0" value="0"></div>
-
-<h4>Nilai Per Soal</h4>
-<div class="form-group"><label>Nilai Pilihan Ganda</label><input type="number" id="nilaiPG" min="0" value="1"></div>
-<div class="form-group"><label>Nilai PG Kompleks</label><input type="number" id="nilaiPGK" min="0" value="2"></div>
-<div class="form-group"><label>Nilai Benar/Salah</label><input type="number" id="nilaiBS" min="0" value="2"></div>
-                    <div class="form-group"><label>Durasi (menit)</label><input type="number" id="durasi" min="1" value="60"></div>
-                    <button type="submit" class="btn btn-primary">Simpan Setting</button>
-                </form>
+       <!-- TAB SETTING SOAL & NILAI -->
+<div id="tab-setting" class="tab-content">
+    <h2>Setting Ujian</h2>
+    <div class="card">
+        <div class="card" style="margin-top: 20px;">
+            <h3>📋 Daftar Ujian Aktif</h3>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead><tr><th>No</th><th>Kelas</th><th>Mata Pelajaran</th><th>Komposisi Soal</th><th>Nilai Maks</th><th>Durasi</th><th>Status</th><th>Aksi</th></tr></thead>
+                    <tbody id="examListBody"><tr><td colspan="8" style="text-align: center;">Loading...</td></tr></tbody>
+                </table>
             </div>
         </div>
+        <h3>Setting Ujian Baru</h3>
+        <form id="examSettingForm">
+            <div class="form-group">
+                <label>Kelas (bisa pilih lebih dari satu)</label>
+                <div id="settingKelasCheckboxList" style="max-height: 150px; overflow-y: auto; border: 2px solid #e2e8f0; border-radius: 16px; padding: 12px;">
+                    <em>Loading kelas...</em>
+                </div>
+                <small style="color: #666;">Centang kelas yang akan menggunakan setting ujian yang sama</small>
+            </div>
+            <div class="form-group">
+                <label>Mata Pelajaran</label>
+                <select id="settingMapel" required>
+                    <option value="">Pilih Mapel</option>
+                    <option value="Pendidikan Pancasila">Pendidikan Pancasila</option>
+                    <option value="Pendidikan Agama Islam">Pendidikan Agama Islam</option>
+                    <option value="Matematika">Matematika</option>
+                    <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                    <option value="IPAS">IPAS</option>
+                    <option value="IPS">IPS</option>
+                    <option value="PPKn">PPKn</option>
+                    <option value="PJOK">PJOK</option>
+                    <option value="SBdP">SBdP</option>
+                    <option value="Bahasa inggris">Bahasa Inggris</option>
+                    <option value="Bahasa Jawa">Bahasa Jawa</option>
+                    <option value="Baca Tulis Alquran">Baca Tulis Alquran</option>
+                    <option value="Uji Coba">Uji Coba</option>
+                </select>
+            </div>
+            <h4>Jumlah Soal</h4>
+            <div class="form-group"><label>Pilihan Ganda</label><input type="number" id="jmlPG" min="0" value="10"></div>
+            <div class="form-group"><label>PG Kompleks (jawaban &gt; 1)</label><input type="number" id="jmlPGK" min="0" value="0"></div>
+            <div class="form-group"><label>Benar/Salah</label><input type="number" id="jmlBS" min="0" value="0"></div>
 
+            <h4>Nilai Per Soal</h4>
+            <div class="form-group"><label>Nilai Pilihan Ganda</label><input type="number" id="nilaiPG" min="0" value="1"></div>
+            <div class="form-group"><label>Nilai PG Kompleks</label><input type="number" id="nilaiPGK" min="0" value="2"></div>
+            <div class="form-group"><label>Nilai Benar/Salah</label><input type="number" id="nilaiBS" min="0" value="2"></div>
+            <div class="form-group"><label>Durasi (menit)</label><input type="number" id="durasi" min="1" value="60"></div>
+            <button type="submit" class="btn btn-primary">Simpan Setting</button>
+        </form>
+    </div>
+</div>
         <!-- TAB MANAJEMEN NILAI -->
         <div id="tab-nilai" class="tab-content">
             <h2>Manajemen Nilai</h2>
@@ -939,10 +941,11 @@
             </div>
             <form id="uploadSoalForm">
                 <div class="form-group">
-                    <label>Kelas</label>
-                    <select id="uploadKelas" required>
-                        <option value="">Pilih Kelas</option>
-                    </select>
+                    <label>Kelas (bisa pilih lebih dari satu)</label>
+                    <div id="uploadKelasCheckboxList" style="max-height: 150px; overflow-y: auto; border: 2px solid #e2e8f0; border-radius: 16px; padding: 12px;">
+                        <em>Loading kelas...</em>
+                    </div>
+                    <small style="color: #666;">Centang kelas yang akan menggunakan soal yang sama</small>
                 </div>
                 <div class="form-group">
                     <label>Mata Pelajaran</label>
@@ -992,7 +995,6 @@
         </div>
     </div>
 </div>
-
     <!-- MODAL RESET STATUS -->
     <div id="resetStatusModal" class="modal" style="display: none;"><div class="modal-content" style="background: white; padding: 25px; border-radius: 10px; max-width: 400px; width: 90%; text-align: center;"><h3>🔓 Reset Status Siswa</h3><p id="resetModalMessage" style="margin: 20px 0;">Apakah Anda yakin ingin mereset status siswa ini?</p><div style="display: flex; gap: 10px; justify-content: center;"><button class="btn btn-primary" onclick="confirmResetStatus()">Ya, Reset</button><button class="btn btn-warning" onclick="closeResetStatusModal()">Batal</button></div></div></div>
 
