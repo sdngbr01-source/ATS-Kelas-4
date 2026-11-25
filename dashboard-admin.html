@@ -705,38 +705,40 @@
             </div>
         </div>
 
-        <!-- TAB MANAJEMEN SOAL -->
-        <div id="tab-soal" class="tab-content">
-            <h2>Manajemen Soal</h2>
-            <div class="card">
-                <div class="filter-bar">
-                    <select id="filterKelasSoal" class="filter-select"><option value="">Pilih Kelas</option></select>
-                    <select id="filterMapelSoal" class="filter-select">
-                        <option value="">Pilih Mata Pelajaran</option>
-                        <option value="Pendidikan Pancasila">Pendidikan Pancasila</option>
-                        <option value="Pendidikan Agama Islam">Pendidikan Agama Islam</option>
-                        <option value="Matematika">Matematika</option>
-                        <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-                        <option value="IPAS">IPAS</option>
-                        <option value="IPS">IPS</option>
-                        <option value="PPKn">PPKn</option>
-                        <option value="PJOK">PJOK</option>
-                        <option value="SBdP">SBdP</option>
-                        <option value="Bahasa inggris">Bahasa Inggris</option>
-                        <option value="Bahasa Jawa">Bahasa Jawa</option>
-                        <option value="Baca Tulis Alquran">Baca Tulis Alquran</option>
-			  <option value="Uji Coba">Uji Coba</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="showUploadSoalModal()">📤 Upload Soal</button>
-                </div>
-                <div class="table-container">
-                    <table id="soalTable">
-                        <thead><tr><th>No</th><th>Kelas</th><th>Mapel</th><th>Tipe</th><th>Soal</th><th>Gambar</th><th>Aksi</th></tr></thead>
-                        <tbody id="soalTableBody"><tr><td colspan="7" style="text-align: center;">Loading...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
+       <!-- TAB MANAJEMEN SOAL -->
+<div id="tab-soal" class="tab-content">
+    <h2>Manajemen Soal</h2>
+    <div class="card">
+        <div class="filter-bar">
+            <select id="filterKelasSoal" class="filter-select"><option value="">Pilih Kelas</option></select>
+            <select id="filterMapelSoal" class="filter-select">
+                <option value="">Pilih Mata Pelajaran</option>
+                <option value="Pendidikan Pancasila">Pendidikan Pancasila</option>
+                <option value="Pendidikan Agama Islam">Pendidikan Agama Islam</option>
+                <option value="Matematika">Matematika</option>
+                <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                <option value="IPAS">IPAS</option>
+                <option value="IPS">IPS</option>
+                <option value="PPKn">PPKn</option>
+                <option value="PJOK">PJOK</option>
+                <option value="SBdP">SBdP</option>
+                <option value="Bahasa inggris">Bahasa Inggris</option>
+                <option value="Bahasa Jawa">Bahasa Jawa</option>
+                <option value="Baca Tulis Alquran">Baca Tulis Alquran</option>
+                <option value="Uji Coba">Uji Coba</option>
+            </select>
+            <button class="btn btn-primary" onclick="showUploadSoalModal()">📤 Upload Soal</button>
+            <!-- TAMBAHKAN TOMBOL INI -->
+            <button class="btn btn-danger" onclick="deleteSoalByFilter()">🗑 Hapus Seluruh Soal</button>
         </div>
+        <div class="table-container">
+            <table id="soalTable">
+                <thead><tr><th>No</th><th>Kelas</th><th>Mapel</th><th>Tipe</th><th>Soal</th><th>Gambar</th><th>Aksi</th></tr></thead>
+                <tbody id="soalTableBody"><tr><td colspan="7" style="text-align: center;">Loading...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
        <!-- TAB SETTING SOAL & NILAI -->
 <div id="tab-setting" class="tab-content">
