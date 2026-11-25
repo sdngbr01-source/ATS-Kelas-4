@@ -146,6 +146,74 @@ async function deleteSoal(soalId) {
         showToast('❌ Gagal menghapus soal', 'error');
     }
 }
+// ==================== DELETE SEMUA SOAL BERDASARKAN FILTER ====================
+async function deleteSoalByFilter() {
+    const kelas = document.getElementById('filterKelasSoal')?.value;
+    const mapel = document.getElementById('filterMapelSoal')?.value;
+
+    // Validasi: wajib pilih minimal kelas atau mapel
+    if (!kelas && !mapel) {
+        showToast('⚠️ Pilih minimal Kelas atau Mata Pelajaran terlebih dahulu!', 'error');
+        return;
+    }
+
+    // Buat label konfirmasi yang jelas
+    const labelKelas = kelas || 'SEMUA KELAS';
+    const labelMapel = mapel || 'SEMUA MAPEL';
+
+    // Konfirmasi pertama
+    const pesan1 = `⚠️ PERINGATAN!\n\nAnda akan menghapus SELURUH soal dengan filter:\n• Kelas: ${labelKelas}\n• Mapel: ${labelMapel}\n\nApakah Anda yakin?`;
+    if (!confirm(pesan1)) return;
+
+    // Konfirmasi kedua (double confirm untuk keamanan)
+    if (!confirm(`🔴 KONFIRMASI TERAKHIR\n\nTindakan ini TIDAK BISA DIBATALKAN.\n\nHapus semua soal ${labelMapel} untuk ${labelKelas}?`)) return;
+
+    try {
+        // Query sesuai filter
+        let query = questionsRef;
+        if (kelas) query = query.where('kelas', '==', kelas);
+        if (mapel) query = query.where('mataPelajaran', '==', mapel);
+
+        showToast('⏳ Memproses penghapusan...', 'info');
+
+        const snapshot = await query.get();
+
+        if (snapshot.empty) {
+            showToast('ℹ️ Tidak ada soal yang cocok dengan filter', 'info');
+            return;
+        }
+
+        const total = snapshot.size;
+
+        // Firestore batch max 500 — pecah jika lebih
+        const docs = [];
+        snapshot.forEach(doc => docs.push(doc.ref));
+
+        let deleted = 0;
+        const BATCH_SIZE = 450; // aman di bawah limit 500
+
+        for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+            const batch = db.batch();
+            const chunk = docs.slice(i, i + BATCH_SIZE);
+            chunk.forEach(ref => batch.delete(ref));
+            await batch.commit();
+            deleted += chunk.length;
+        }
+
+        // Reset cache supaya tabel refresh
+        soalCache = null;
+        lastSoalFetch = 0;
+
+        showToast(`✅ Berhasil menghapus ${deleted} soal`, 'success');
+        loadSoal(true);
+    } catch (error) {
+        console.error('Error deleting soal by filter:', error);
+        showToast('❌ Gagal menghapus: ' + error.message, 'error');
+    }
+}
+
+// expose
+window.deleteSoalByFilter = deleteSoalByFilter;
 
 // ==================== DOWNLOAD TEMPLATE ====================
 function downloadTemplateSoal() {
